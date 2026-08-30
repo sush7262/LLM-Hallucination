@@ -1,0 +1,9 @@
+torch
+transformers
+sentence-transformers
+fastapi
+uvicorn[standard]
+google-genai
+pydantic
+pydantic-settings
+python-dotenv

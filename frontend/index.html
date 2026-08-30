@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Claim-Level Hallucination Verification Module for RAG Systems — per-claim verdicts with three-way classification.">
+    <title>RAG Hallucination Verifier</title>
+
+    <!-- Google Fonts — Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- ═══ Header ═══ -->
+    <header class="app-header">
+        <div class="header-content">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                        <circle cx="14" cy="14" r="12" stroke="url(#grad1)" stroke-width="2.5" fill="none"/>
+                        <path d="M9 14.5L12.5 18L19 10" stroke="url(#grad1)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <defs>
+                            <linearGradient id="grad1" x1="0" y1="0" x2="28" y2="28">
+                                <stop offset="0%" stop-color="#6366f1"/>
+                                <stop offset="100%" stop-color="#a78bfa"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <h1>RAG Hallucination Verifier</h1>
+            </div>
+            <p class="subtitle">Claim-level verification for RAG-generated answers</p>
+        </div>
+    </header>
+
+    <!-- ═══ Main Content ═══ -->
+    <main class="app-main">
+
+        <!-- ── Input Panel ── -->
+        <section class="panel input-panel" id="input-panel">
+            <div class="panel-header">
+                <h2>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                    Input
+                </h2>
+                <div class="example-buttons">
+                    <button class="btn btn-ghost" onclick="loadExample('A')" title="Revenue/margin — mixed result">
+                        📋 Example A
+                    </button>
+                    <button class="btn btn-ghost" onclick="loadExample('B')" title="Eiffel Tower — contradiction">
+                        📋 Example B
+                    </button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="answer-input">Generated Answer</label>
+                <textarea
+                    id="answer-input"
+                    placeholder="Paste the RAG-generated answer here..."
+                    rows="4"
+                ></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="passages-input">Retrieved Passages <span class="hint">(one per line)</span></label>
+                <textarea
+                    id="passages-input"
+                    placeholder="Paste retrieved passages here, one per line..."
+                    rows="5"
+                ></textarea>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group mode-selector">
+                    <label for="mode-select">Decomposition Mode</label>
+                    <div class="toggle-group">
+                        <button class="toggle-btn active" data-mode="rule_based" onclick="setMode('rule_based')">
+                            ⚡ Rule-Based
+                        </button>
+                        <button class="toggle-btn" data-mode="llm" onclick="setMode('llm')">
+                            🤖 LLM (Gemini)
+                        </button>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" id="verify-btn" onclick="verify()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    Verify
+                </button>
+            </div>
+        </section>
+
+        <!-- ── Output Panel ── -->
+        <section class="panel output-panel" id="output-panel">
+
+            <!-- Loading State -->
+            <div class="state loading-state" id="loading-state" style="display: none;">
+                <div class="spinner"></div>
+                <p>Running verification pipeline...</p>
+                <span class="hint">Decomposing claims → Aligning evidence → Classifying entailment</span>
+            </div>
+
+            <!-- Error State -->
+            <div class="state error-state" id="error-state" style="display: none;">
+                <div class="error-icon">⚠️</div>
+                <h3>Verification Failed</h3>
+                <p id="error-message"></p>
+            </div>
+
+            <!-- Empty State -->
+            <div class="state empty-state" id="empty-state">
+                <div class="empty-icon">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.4">
+                        <path d="M9 12l2 2 4-4"/>
+                        <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <p>Enter an answer and passages, then click <strong>Verify</strong></p>
+                <span class="hint">Or try one of the preset examples above</span>
+            </div>
+
+            <!-- Results -->
+            <div id="results-container" style="display: none;">
+
+                <!-- Decision Banner -->
+                <div class="decision-banner" id="decision-banner">
+                    <div class="decision-icon" id="decision-icon"></div>
+                    <div class="decision-text">
+                        <h3 id="decision-label"></h3>
+                        <span class="decision-meta" id="decision-meta"></span>
+                    </div>
+                </div>
+
+                <!-- Stats Row -->
+                <div class="stats-row" id="stats-row">
+                    <div class="stat-card">
+                        <span class="stat-number" id="stat-total">0</span>
+                        <span class="stat-label">Total Claims</span>
+                    </div>
+                    <div class="stat-card stat-supported">
+                        <span class="stat-number" id="stat-supported">0</span>
+                        <span class="stat-label">Supported</span>
+                    </div>
+                    <div class="stat-card stat-unsupported">
+                        <span class="stat-number" id="stat-unsupported">0</span>
+                        <span class="stat-label">Unsupported</span>
+                    </div>
+                    <div class="stat-card stat-contradicted">
+                        <span class="stat-number" id="stat-contradicted">0</span>
+                        <span class="stat-label">Contradicted</span>
+                    </div>
+                </div>
+
+                <!-- Chart + Claims -->
+                <div class="results-body">
+                    <!-- Donut Chart -->
+                    <div class="chart-container" id="chart-container">
+                        <canvas id="donut-chart" width="180" height="180"></canvas>
+                        <div class="chart-legend" id="chart-legend"></div>
+                    </div>
+
+                    <!-- Claim Cards -->
+                    <div class="claims-list" id="claims-list"></div>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- ═══ Footer ═══ -->
+    <footer class="app-footer">
+        <p>NIT Trichy Internship — Claim-Level Hallucination Detection in RAG Systems</p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
