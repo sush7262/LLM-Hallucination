@@ -32,8 +32,8 @@ class Settings(BaseSettings):
 
     # ── NLI model (Stage 3 — Entailment Classification) ─────────────────
     nli_model: str = Field(
-        default="MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli",
-        description="HuggingFace NLI model for entailment classification.",
+        default="MoritzLaurer/DeBERTa-v3-xsmall-mnli-fever-anli",
+        description="HuggingFace NLI model for entailment classification (xsmall for low RAM servers).",
     )
 
     # ── Pipeline tuning ─────────────────────────────────────────────────
