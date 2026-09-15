@@ -70,13 +70,49 @@
             </div>
 
             <div class="form-group">
-                <label for="passages-input">Retrieved Passages <span class="hint">(one per line)</span></label>
+                <div class="label-with-action">
+                    <label for="passages-input">Retrieved Passages / Context Document</label>
+                    <span class="upload-hint">Upload PDF or paste text below</span>
+                </div>
+
+                <!-- PDF Upload Dropzone -->
+                <div class="pdf-dropzone" id="pdf-dropzone" onclick="document.getElementById('pdf-file-input').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+                    <div class="dropzone-content">
+                        <div class="dropzone-icon">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                                <line x1="12" y1="18" x2="12" y2="12"/>
+                                <polyline points="9 15 12 12 15 15"/>
+                            </svg>
+                        </div>
+                        <div class="dropzone-text">
+                            <span class="dropzone-title">Upload PDF Document</span>
+                            <span class="dropzone-sub">Drag & drop your PDF file here, or <strong class="browse-link">browse files</strong></span>
+                        </div>
+                    </div>
+                    <input type="file" id="pdf-file-input" accept=".pdf" style="display: none;" onchange="handlePdfUpload(event)">
+                </div>
+
+                <!-- PDF File Active Status Box -->
+                <div class="pdf-file-status" id="pdf-file-status" style="display: none;">
+                    <div class="pdf-info">
+                        <span class="pdf-icon">📄</span>
+                        <div class="pdf-details">
+                            <strong id="pdf-filename">document.pdf</strong>
+                            <span class="pdf-meta" id="pdf-meta">0 pages • 0 passages extracted</span>
+                        </div>
+                    </div>
+                    <button class="btn-clear-pdf" onclick="clearPdf()" title="Remove PDF">✕ Remove</button>
+                </div>
+
                 <textarea
                     id="passages-input"
-                    placeholder="Paste retrieved passages here, one per line..."
+                    placeholder="Extracted passages from PDF will appear here, or you can paste passages directly..."
                     rows="5"
                 ></textarea>
             </div>
+
 
             <div class="form-row">
                 <div class="form-group mode-selector">

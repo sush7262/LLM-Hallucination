@@ -52,6 +52,7 @@ function loadExample(id) {
     const ex = EXAMPLES[id];
     if (!ex) return;
 
+    clearPdf();
     document.getElementById("answer-input").value = ex.answer;
     document.getElementById("passages-input").value = ex.passages.join("\n");
 
@@ -62,6 +63,90 @@ function loadExample(id) {
         setTimeout(() => (btn.style.borderColor = ""), 400);
     }
 }
+
+
+// ═══════════════════════════════════════════════════════════════════════
+//  PDF Document Upload & Drag-and-Drop
+// ═══════════════════════════════════════════════════════════════════════
+
+function handleDragOver(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    document.getElementById("pdf-dropzone").classList.add("drag-over");
+}
+
+function handleDragLeave(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    document.getElementById("pdf-dropzone").classList.remove("drag-over");
+}
+
+function handleDrop(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    const dropzone = document.getElementById("pdf-dropzone");
+    dropzone.classList.remove("drag-over");
+
+    const files = event.dataTransfer.files;
+    if (files && files.length > 0) {
+        if (files[0].type === "application/pdf" || files[0].name.toLowerCase().endsWith(".pdf")) {
+            uploadPdfFile(files[0]);
+        } else {
+            showError("Please upload a valid PDF file.");
+        }
+    }
+}
+
+function handlePdfUpload(event) {
+    const file = event.target.files[0];
+    if (file) {
+        uploadPdfFile(file);
+    }
+}
+
+async function uploadPdfFile(file) {
+    const dropzone = document.getElementById("pdf-dropzone");
+    const fileStatus = document.getElementById("pdf-file-status");
+    const filenameEl = document.getElementById("pdf-filename");
+    const metaEl = document.getElementById("pdf-meta");
+
+    dropzone.style.display = "none";
+    fileStatus.style.display = "flex";
+    filenameEl.textContent = file.name;
+    metaEl.textContent = "Extracting text from PDF...";
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+        const response = await fetch(`${API_BASE}/extract-pdf`, {
+            method: "POST",
+            body: formData,
+        });
+
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.detail || "PDF extraction failed.");
+        }
+
+        const data = await response.json();
+
+        // Populate textarea with extracted passages separated by double newline
+        document.getElementById("passages-input").value = data.passages.join("\n\n");
+
+        metaEl.textContent = `${data.total_pages} page(s) • ${data.total_passages} passages extracted`;
+    } catch (err) {
+        showError(err.message || "Failed to extract text from PDF.");
+        clearPdf();
+    }
+}
+
+function clearPdf() {
+    document.getElementById("pdf-file-input").value = "";
+    document.getElementById("pdf-dropzone").style.display = "";
+    document.getElementById("pdf-file-status").style.display = "none";
+}
+
 
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -310,7 +395,7 @@ function drawDonut(counts, total) {
     });
 
     // Center text
-    ctx.fillStyle = "#f1f5f9";
+    ctx.fillStyle = "#0f172a";
     ctx.font = "bold 28px Inter, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";

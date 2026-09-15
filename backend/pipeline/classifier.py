@@ -18,9 +18,9 @@ logger = logging.getLogger(__name__)
 
 # DeBERTa MNLI label mapping — order matches model's output logits
 _LABEL_MAP = {
-    0: "contradicted",   # contradiction
+    0: "supported",      # entailment
     1: "unsupported",    # neutral
-    2: "supported",      # entailment
+    2: "contradicted",   # contradiction
 }
 
 
